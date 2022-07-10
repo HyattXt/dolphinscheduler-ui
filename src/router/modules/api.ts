@@ -49,7 +49,7 @@ export default {
             component: IFrame,
             meta: {
                 title: '服务开发-api-manager',
-                frameSrc: 'https://www.naiveadmin.com',
+                frameSrc: 'https://www.naiveui.com/zh-CN/os-theme',
                 activeMenu: 'api',
                 showSide: true,
                 auth: []
