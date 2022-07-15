@@ -47,6 +47,10 @@ export default defineConfig({
       '/dolphinscheduler': {
         target: loadEnv('development', './').VITE_APP_DEV_WEB_URL,
         changeOrigin: true
+      },
+      '/interface': {
+        target: loadEnv('development', './').VITE_APP_DEV_API_URL,
+        changeOrigin: true
       }
     }
   }
