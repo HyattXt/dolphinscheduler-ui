@@ -34,7 +34,7 @@ export default {
         {
             path: '/api/api-dev',
             name: 'api-dev',
-            component: IFrame,
+            component: () => import('@/views/api/api-dev/list/index.vue'),
             meta: {
                 title: '服务开发-api-dev',
                 frameSrc: 'https://www.naiveadmin.com',
