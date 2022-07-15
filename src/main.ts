@@ -25,6 +25,7 @@ import * as echarts from 'echarts'
 import 'echarts/theme/macarons'
 import 'echarts/theme/dark-bold'
 import './assets/styles/default.scss'
+import naive from 'naive-ui'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -33,6 +34,7 @@ pinia.use(piniaPluginPersistedstate)
 
 app.config.globalProperties.echarts = echarts
 
+app.use(naive)
 app.use(router)
 app.use(pinia)
 app.use(i18n)
