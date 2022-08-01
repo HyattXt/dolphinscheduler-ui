@@ -25,32 +25,52 @@ const modules = import.meta.glob('/src/views/**/**.tsx')
 const components: { [key: string]: Component } = utils.mapping(modules)
 
 export default {
-    path: '/api',
-    name: 'api',
-    meta: { title: 'api' },
+    path: '/service',
+    name: 'service',
+    meta: { title: 'service' },
     redirect: { name: 'api-dev' },
     component: () => import('@/layouts/content'),
     children: [
         {
-            path: '/api/api-dev',
+            path: '/service/api-dev',
             name: 'api-dev',
             component: () => import('@/views/api/api-dev/list/index.vue'),
             meta: {
                 title: '服务开发-api-dev',
-                frameSrc: 'https://www.naiveadmin.com',
-                activeMenu: 'api',
+                activeMenu: 'service',
                 showSide: true,
                 auth: []
             }
         },
         {
-            path: '/api/api-manager',
+            path: '/service/api-dev-step',
+            name: 'api-dev-step',
+            component: () => import('@/views/api/api-dev/add/stepForm.vue'),
+            meta: {
+                title: '服务开发-api-dev-step',
+                activeMenu: 'service',
+                showSide: true,
+                auth: []
+            }
+        },
+        {
+            path: '/service/api-register',
+            name: 'api-register',
+            component: () => import('@/views/api/api-dev/register/index.vue'),
+            meta: {
+                title: '服务注册-api-register',
+                activeMenu: 'service',
+                showSide: true,
+                auth: []
+            }
+        },
+        {
+            path: '/service/api-manager',
             name: 'api-manager',
-            component: IFrame,
+            component: () => import('@/views/api/api-manager/list/index.vue'),
             meta: {
                 title: '服务开发-api-manager',
-                frameSrc: 'https://www.naiveui.com/zh-CN/os-theme',
-                activeMenu: 'api',
+                activeMenu: 'service',
                 showSide: true,
                 auth: []
             }
