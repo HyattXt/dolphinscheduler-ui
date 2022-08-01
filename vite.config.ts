@@ -43,12 +43,21 @@ export default defineConfig({
     }
   },
   server: {
+    host: "0.0.0.0",
     proxy: {
+      '/hddebug': {
+        target: loadEnv('development', './').VITE_APP_DEV_API_URL,
+        changeOrigin: true
+      },
       '/dolphinscheduler': {
         target: loadEnv('development', './').VITE_APP_DEV_WEB_URL,
         changeOrigin: true
       },
       '/interface': {
+        target: loadEnv('development', './').VITE_APP_DEV_API_URL,
+        changeOrigin: true
+      },
+      '/api': {
         target: loadEnv('development', './').VITE_APP_DEV_API_URL,
         changeOrigin: true
       }
