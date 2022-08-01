@@ -312,17 +312,17 @@ export function useDataList() {
       },
       {
         label: () => h(NEllipsis, null, { default: () => t('menu.api') }),
-        key: 'api',
+        key: 'service',
         icon: renderIcon(ApiOutlined),
         children: [
           {
             label: t('menu.api_dev'),
-            key: '/api/api-dev',
+            key: '/service/api-dev',
             icon: renderIcon(ApartmentOutlined)
           },
           {
             label: t('menu.api_manager'),
-            key: '/api/api-manager',
+            key: '/service/api-manager',
             icon: renderIcon(BarsOutlined)
           }
         ]
