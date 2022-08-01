@@ -56,7 +56,7 @@ export default {
   data_quality: 'Data Quality',
   task_result: 'Task Result',
   rule: 'Rule management',
-  api: 'api',
+  api: 'Api',
   api_dev: 'API development',
   api_manager: 'API manager'
 }

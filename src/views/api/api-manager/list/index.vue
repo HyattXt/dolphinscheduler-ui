@@ -1,38 +1,10 @@
 <template>
   <n-space vertical>
     <n-card size="small">
-      <n-space justify="space-between"	style="height: 40px">
-        <n-button type='primary' @click="showModal = true"> 新建服务</n-button>
-        <n-modal v-model:show="showModal">
-          <n-card
-              style="width: 700px"
-              title="选择API类型"
-              aria-modal="true"
-              size="huge"
-          >
-            <n-space vertical >
-                <n-space inline>
-                  <router-link to='/service/api-dev-step'>
-                <n-button strong type="info"> 自定义API </n-button>
-                  </router-link>
-                    <n-gradient-text :size="18" >
-                           支持通过自定义SQL方式发布数据服务API
-                    </n-gradient-text>
-                </n-space>
-                <n-space inline>
-                  <router-link to='/service/api-register'>
-                <n-button strong type="info"> 注册API </n-button>
-                  </router-link>
-                <n-gradient-text :size="18" >
-                          支持将已有Web服务注册到平台进行统一管理
-                </n-gradient-text>
-                </n-space>
-            </n-space>
-          </n-card>
-        </n-modal>
+      <n-space justify="end"	style="height: 40px">
         <n-form
-            ref="formRef"
-            :model="pagination"
+          ref="formRef"
+          :model="pagination"
         >
           <n-grid :cols="26" :x-gap="24">
             <n-form-item-gi :span="6" :show-label="false" path="pagination.apiName">
@@ -58,67 +30,104 @@
     </n-card>
     <n-card>
       <n-data-table
-          remote
-          ref="table"
-          :columns="columns"
-          :data="data"
-          :loading="loading"
-          :pagination="pagination"
-          :row-key="rowKey"
-          @update:page="handlePageChange"
+        remote
+        ref="table"
+        :columns="columns"
+        :data="data"
+        :loading="loading"
+        :pagination="pagination"
+        :row-key="rowKey"
+        @update:page="handlePageChange"
       />
     </n-card>
   </n-space>
-  <n-drawer v-model:show="active" :width="502">
+  <n-drawer v-model:show="active" :width="700">
     <n-drawer-content closable>
       <template #header>
-        API调试: {{drawTitle}}
+        查看API详情: {{drawTitle}}
       </template>
-      <n-card title="请求参数" size="small">
-        <n-table :single-line="false" size="small">
-          <thead>
-          <tr>
-            <th>参数名称</th>
-            <th>参数值</th>
-          </tr>
-          </thead>
-          <tbody>
-          <tr v-for="item in paramList">
-            <td>{{ item.key }}</td>
-            <n-input size="large" v-model:value="item.value"></n-input>
-          </tr>
-          </tbody>
-        </n-table>
-        <template #footer>
-          <n-button type="primary" @click="debugApi">开始调试</n-button>
-        </template>
+      <n-card  size="small">
+        <n-descriptions label-placement="left" title="基本信息">
+          <n-descriptions-item label="API名称">
+            {{basicInfo.apiName}}
+          </n-descriptions-item>
+          <n-descriptions-item label="API类型">
+            {{basicInfo.apiFlag}}
+          </n-descriptions-item>
+          <n-descriptions-item label="更新时间">
+            {{basicInfo.apiGmtTime}}
+          </n-descriptions-item>
+          <n-descriptions-item label="描述">
+            {{basicInfo.apiComment}}
+          </n-descriptions-item>
+          <n-descriptions-item label="创建人">
+            {{basicInfo.apiCreator}}
+          </n-descriptions-item>
+          <n-descriptions-item label="频次限制">
+            {{basicInfo.apiFrequency}}次/秒
+          </n-descriptions-item>
+          <n-descriptions-item label="后端超时">
+            {{basicInfo.apiTimeout}}ms
+          </n-descriptions-item>
+        </n-descriptions>
       </n-card>
-      <n-card title="调试结果" style="margin-top: 10px">
-        <div>
-          <n-scrollbar style="max-height: 300px">
-          <n-config-provider :hljs="hljs">
-            <n-code :code="code" language="javascript" />
-          </n-config-provider>
-          </n-scrollbar>
-        </div>
+      <n-card  size="small" style="margin-top: 10px">
+        <n-descriptions label-placement="left" title="自定义SQL" column="1">
+          <n-descriptions-item label="数据源">
+            API服务
+          </n-descriptions-item>
+          <n-descriptions-item label="自定义SQL">
+            {{basicInfo.apiScript}}
+          </n-descriptions-item>
+        </n-descriptions>
       </n-card>
     </n-drawer-content>
   </n-drawer>
+  <n-modal
+    v-model:show="showModal"
+    class="custom-card"
+    :style="{ height: '450px',width:'600px' }"
+    preset="card"
+    title="授权API给用户"
+    size="huge"
+    :bordered="false"
+  >
+    <n-form-item label="API名称 : " label-placement="left">
+      {{drawTitle}}
+    </n-form-item>
+    <n-form-item label="授权用户" label-placement="left" path="user.name">
+      <!--n-select
+        v-model:value="apiAuthorizer"
+        multiple
+        :options="userList"
+        label-field="userName"
+        value-field="id"/-->
+      <n-transfer
+        ref="transfer"
+        v-model:value="apiAuthorizer"
+        virtual-scroll
+        :options="userList"
+        filterable
+      />
+    </n-form-item>
+    <n-space justify="end">
+      <n-button type="info" @click="subAuth">确定</n-button>
+    </n-space>
+  </n-modal>
 </template>
 
 <script>
 import {defineComponent, ref, reactive, onMounted, h} from 'vue';
 import axios from "axios";
-import { DeleteOutlined, EditOutlined, SearchOutlined, CodeOutlined } from "@vicons/antd";
-import { NButton, NSpace, useMessage, NPopconfirm, NTooltip, NIcon } from "naive-ui";
+import { UserOutlined, SearchOutlined, ToTopOutlined, ProfileOutlined } from "@vicons/antd";
+import { NButton, NSpace, useMessage, NTooltip, NIcon } from "naive-ui";
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import moment from 'moment'
 
 hljs.registerLanguage('javascript', javascript)
 
-
-const columns = ({play},{del},{editApi}) => {
+const columns = ({play},{pub},{auth}) => {
   return [  {
     title: 'ID',
     key: 'apiId'
@@ -162,19 +171,19 @@ const columns = ({play},{del},{editApi}) => {
                     NButton,
                     {
                       circle: true,
-                      type: 'info',
+                      type: 'warning',
                       size: 'small',
                       class: 'edit',
                       onClick: () => {
-                        play(row)
+                        auth(row)
                       }
                     },
                     {
                       icon: () =>
-                        h(NIcon, null, { default: () => h(CodeOutlined) })
+                        h(NIcon, null, { default: () => h(UserOutlined) })
                     }
                   ),
-                default: () => "调试"
+                default: () => "授权"
               }
             ),
               h(
@@ -190,50 +199,38 @@ const columns = ({play},{del},{editApi}) => {
                         size: 'small',
                         class: 'edit',
                         onClick: () => {
-                          editApi(row)
+                          play(row)
                         }
                       },
                       {
                         icon: () =>
-                          h(NIcon, null, { default: () => h(EditOutlined) })
+                          h(NIcon, null, { default: () => h(ProfileOutlined) })
                       }
                     ),
-                  default: () => "编辑"
+                  default: () => "查看"
                 }
               ),
               h(
-                NPopconfirm,
-                {
-                  onPositiveClick: () => {
-                    del(row);
-                  }
-                },
+                NTooltip,
+                {},
                 {
                   trigger: () =>
                     h(
-                      NTooltip,
-                      {},
+                      NButton,
                       {
-                        trigger: () =>
-                          h(
-                            NButton,
-                            {
-                              circle: true,
-                              type: 'error',
-                              size: 'small',
-                              class: 'delete'
-                            },
-                            {
-                              icon: () =>
-                                h(NIcon, null, {
-                                  default: () => h(DeleteOutlined)
-                                })
-                            }
-                          ),
-                        default: () => "删除"
+                        circle: true,
+                        type: 'info',
+                        size: 'small',
+                        class: 'edit',
+                        onClick: () => {
+                          pub(row)}
+                      },
+                      {
+                        icon: () =>
+                          h(NIcon, null, { default: () => h(ToTopOutlined) })
                       }
                     ),
-                  default: () => "确定删除吗？"
+                  default: () => "发布"
                 }
               )
             ]
@@ -263,29 +260,29 @@ function query (page, pageSize = 10 ,apiName ="",apiFlag ="",apiStatus="",apiPat
     }
 
     axios.post(url,params)
-        .then(function (response) {
-          console.log(response);
-          TableData.apiList=response.data.data;
-          TableData.totalNum=response.data.totalNum;
-          console.log(TableData.apiList);
-          console.log(TableData.totalNum);
-          const copiedData = TableData.apiList.map((v) => v)
-          const total = TableData.totalNum
-          const pageCount = Math.ceil(total / pageSize)
+      .then(function (response) {
+        console.log(response);
+        TableData.apiList=response.data.data;
+        TableData.totalNum=response.data.totalNum;
+        console.log(TableData.apiList);
+        console.log(TableData.totalNum);
+        const copiedData = TableData.apiList.map((v) => v)
+        const total = TableData.totalNum
+        const pageCount = Math.ceil(total / pageSize)
 
-          setTimeout(
-              () =>
-                  resolve({
-                    pageCount,
-                    data: copiedData,
-                    total
-                  }),
-              300
-          )
-        })
-        .catch(function (error) {
-          console.log(error);
-        });
+        setTimeout(
+          () =>
+            resolve({
+              pageCount,
+              data: copiedData,
+              total
+            }),
+          300
+        )
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
 
   })
 }
@@ -296,26 +293,78 @@ export default defineComponent({
     const dataRef = ref([])
     const loadingRef = ref(true)
     const active = ref(false);
+    const showModal = ref(false);
     const drawTitle = ref("");
-    const drawPath = ref("");
-    const drawParam = ref({});
-    const paramList = ref([]);
-    const code = ref("");
+    const userList = ref([]);
+    const apiAuthorizer = ref([]);
+    const basicInfo = ref({});
     const activate = (row) => {
-      code.value = '';
       active.value = true;
       drawTitle.value = row.apiName;
-      drawPath.value = row.apiPath;
-      let obj1 = JSON.parse(row.apiSample);
-      let obj2 = JSON.parse(obj1.requestBody);
-      drawParam.value=obj2;
-      paramList.value = Object.entries(drawParam.value).map(([key, value]) => ({
-        key, value
-      }))
       console.log(drawTitle);
-      console.log(drawParam.value);
+      basicInfo.value={};
+      queryBasic(row.apiId);
+    };
+    const actAuth =(row) => {
+      showModal.value = true;
+      drawTitle.value = row.apiName;
+      apiAuthorizer.value = '';
+      console.log(drawTitle);
+      queryUser();
     };
     const message = useMessage();
+
+    function queryUser () {
+      const listUrl ='/interface/getUser'
+      const authListUrl ='/interface/getAuthorizeInfo'
+      axios.get(listUrl)
+        .then(function (response) {
+            console.log(response);
+            userList.value=response.data.data;
+            let userOption = userList.value.map(item=>{
+              let tempList ={};
+              tempList.value=item.id;
+              tempList.label=item.userName;
+              return tempList
+            })
+            userList.value = userOption;
+            console.log(userList.value)
+          }
+        )
+      axios.post(authListUrl)
+        .then(function (response) {
+            console.log(response);
+            userList.value=response.data.data;
+            let userOption = userList.value.map(item=>{
+              let tempList ={};
+              tempList.value=item.id;
+              tempList.label=item.userName;
+              return tempList
+            })
+            userList.value = userOption;
+            console.log(userList.value)
+          }
+        )
+    }
+
+    function queryBasic (apiId) {
+      const url ='/interface/getInterfaceInfoById'
+      let basicPar = {
+        apiId:""
+      };
+      basicPar.apiId=apiId;
+      axios.post(url,basicPar)
+        .then(function (response) {
+          console.log(response);
+          basicInfo.value=response.data.obj;
+          if (basicInfo.value.apiFlag === 1) {basicInfo.value.apiFlag = "接口开发";}
+          if (basicInfo.value.apiFlag === 2) {basicInfo.value.apiFlag = "接口注册";}
+          let date = new Date(parseInt(basicInfo.value.apiGmtTime));
+          basicInfo.value.apiGmtTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+          }
+        )
+    }
+
     function refresh(currentPage) {
       query(
         currentPage,
@@ -346,41 +395,36 @@ export default defineComponent({
         paginationReactive.itemCount = data.total
       })
     }
+
+    function subAuth() {
+      console.log(apiAuthorizer)
+    }
+
     const columnsRef = ref(columns({
-      play(row) {
-        activate(row);
-      }
-    },
-      {
-        del(row) {
-          let urlDel='/interface/deleteByApiId';
-          let delPar = {
-            apiId:""
-          };
-          delPar.apiId=row.apiId
-          axios.post(urlDel, delPar)
-            .then(function(response) {
-                console.log(response);
-                message.info(`成功删除 ${row.apiName}`);
-                refresh(1);
-              }
-            )
+        play(row) {
+          activate(row);
         }
       },
       {
-        editApi(row) {
-/*          let urlPub=`/interface-ui/api/publish?id=${row.apiId}`;
+        pub(row) {
+          let urlPub=`/interface-ui/api/publish?id=${row.apiId}`;
           let pubPar = {
             id:""
           };
           pubPar.id=row.apiId
           axios.post(urlPub, pubPar)
             .then(function(response) {
-                console.log(response);
+              console.log(response);
+              message.info(`成功发布 ${row.apiName}`);
+              console.log("成功发布")
+              refresh(1)
               }
             )
-*/
-          message.info(`编辑 ${row.apiName}`);
+        }
+      },
+      {
+        auth(row) {
+          actAuth(row);
         }
       }
     ),)
@@ -399,12 +443,12 @@ export default defineComponent({
 
     onMounted(() => {
       query(
-          paginationReactive.page,
-          paginationReactive.pageSize,
-          paginationReactive.apiName,
-          paginationReactive.apiFlag,
-          paginationReactive.apiStatus,
-          paginationReactive.apiPath
+        paginationReactive.page,
+        paginationReactive.pageSize,
+        paginationReactive.apiName,
+        paginationReactive.apiFlag,
+        paginationReactive.apiStatus,
+        paginationReactive.apiPath
 
       ).then((data) => {
         dataRef.value = data.data
@@ -435,17 +479,34 @@ export default defineComponent({
       pagination: paginationReactive,
       loading: loadingRef,
       SearchOutlined,
-      showModal: ref(false),
+      showModal,
       active,
       activate,
-      drawParam,
-      paramList,
-      drawPath,
       drawTitle,
+      userList,
+      basicInfo,
+      apiAuthorizer,
+      subAuth,
       rowKey (rowData) {
         return rowData.apiId
       },
-      code,
+      code: '{\n' +
+        '    "status": 23,\n' +
+        '    "data": [\n' +
+        '        {\n' +
+        '            "apiGmtTime": "1992-04-26 04:38:37",\n' +
+        '            "apiId": "93"\n'+
+        '        },\n'+
+        '        {\n' +
+        '            "apiGmtTime": "1995-02-15 07:23:33",\n' +
+        '            "apiId": "94"\n'+
+        '        },\n'+
+        '        {\n' +
+        '            "apiGmtTime": "1995-02-15 07:23:33",\n' +
+        '            "apiId": "94"\n'+
+        '        }\n'+
+        '            ]\n'+
+        '  }',
       hljs,
       stateOptions:[
         {
@@ -483,12 +544,12 @@ export default defineComponent({
         if (!loadingRef.value) {
           loadingRef.value = true
           query(
-              currentPage,
-              paginationReactive.pageSize,
-              paginationReactive.apiName,
-              paginationReactive.apiFlag,
-              paginationReactive.apiStatus,
-              paginationReactive.apiPath
+            currentPage,
+            paginationReactive.pageSize,
+            paginationReactive.apiName,
+            paginationReactive.apiFlag,
+            paginationReactive.apiStatus,
+            paginationReactive.apiPath
           ).then((data) => {
             dataRef.value = data.data
             dataRef.value.apiCreateTime=dataRef.value.forEach(item => {
@@ -512,46 +573,6 @@ export default defineComponent({
             loadingRef.value = false
           })
         }
-      },
-      debugApi (){
-        let url = drawPath.value.replace('/proxy','/hddebug/proxy')
-        //let url = '/hddebug/proxy/api/weather/city/101030100'
-        //let url ='/interface/getUser'
-        let list = paramList.value;
-        let requestBody = {};
-        for(let i=0;i<list.length;i++){
-          requestBody[list[i].key]=list[i].value
-        };
-        console.log(requestBody);
-        console.log(url);
-        /*axios.get(url)
-          .then(function(response) {
-              console.log(response);
-              code.value = JSON.stringify(response.data, null, 2);
-            }
-          ).catch(function(error) {
-          console.log(error);
-        })
-         */
-          if(url.indexOf('hddebug')>0){
-          axios.get(url)
-            .then(function(response) {
-                console.log(response);
-              code.value = JSON.stringify(response.data, null, 2);
-              }
-            ).catch(function(error) {
-            console.log(error);
-          })}
-          else{
-            axios.post(url, requestBody)
-              .then(function(response) {
-                  console.log(response);
-                  code.value = JSON.stringify(response.data, null, 2);
-                }
-              ).catch(function(error) {
-              console.log(error);
-            })
-          }
       }
     }
   }
