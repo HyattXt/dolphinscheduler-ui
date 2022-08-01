@@ -299,6 +299,9 @@ export default defineComponent({
     const drawTitle = ref("");
     const drawPath = ref("");
     const drawParam = ref({});
+    const drawId = ref("");
+    const drawScript = ref("");
+    const drawMethod = ref("");
     const paramList = ref([]);
     const code = ref("");
     const activate = (row) => {
@@ -306,9 +309,10 @@ export default defineComponent({
       active.value = true;
       drawTitle.value = row.apiName;
       drawPath.value = row.apiPath;
-      let obj1 = JSON.parse(row.apiSample);
-      let obj2 = JSON.parse(obj1.requestBody);
-      drawParam.value=obj2;
+      drawId.value = row.apiId;
+      drawScript.value = row.apiScript;
+      drawMethod.value = row.apiMethod;
+      drawParam.value=JSON.parse(row.apiSample).requestBody;
       paramList.value = Object.entries(drawParam.value).map(([key, value]) => ({
         key, value
       }))
@@ -316,6 +320,7 @@ export default defineComponent({
       console.log(drawParam.value);
     };
     const message = useMessage();
+
     function refresh(currentPage) {
       query(
         currentPage,
@@ -439,9 +444,12 @@ export default defineComponent({
       active,
       activate,
       drawParam,
+      drawId,
       paramList,
       drawPath,
       drawTitle,
+      drawScript,
+      drawMethod,
       rowKey (rowData) {
         return rowData.apiId
       },
@@ -514,27 +522,18 @@ export default defineComponent({
         }
       },
       debugApi (){
-        let url = drawPath.value.replace('/proxy','/hddebug/proxy')
-        //let url = '/hddebug/proxy/api/weather/city/101030100'
-        //let url ='/interface/getUser'
-        let list = paramList.value;
-        let requestBody = {};
-        for(let i=0;i<list.length;i++){
+          let url = drawPath.value;
+          let list = paramList.value;
+          let requestBody = {};
+          for(let i=0;i<list.length;i++){
           requestBody[list[i].key]=list[i].value
-        };
-        console.log(requestBody);
-        console.log(url);
-        /*axios.get(url)
-          .then(function(response) {
-              console.log(response);
-              code.value = JSON.stringify(response.data, null, 2);
-            }
-          ).catch(function(error) {
-          console.log(error);
-        })
-         */
-          if(url.indexOf('hddebug')>0){
-          axios.get(url)
+          };
+          if(url.indexOf('proxy')>0){
+            if(drawMethod.value==='GET'){
+            let regUrl = url.replace('/proxy','/hddebug/proxy');
+            console.log(requestBody);
+            console.log(url);
+          axios.get(regUrl)
             .then(function(response) {
                 console.log(response);
               code.value = JSON.stringify(response.data, null, 2);
@@ -542,8 +541,35 @@ export default defineComponent({
             ).catch(function(error) {
             console.log(error);
           })}
+            else{
+              let regUrl = url.replace('/proxy','/hddebug/proxy');
+              console.log(requestBody);
+              console.log(url);
+              axios.post(regUrl,requestBody)
+                .then(function(response) {
+                    console.log(response);
+                    code.value = JSON.stringify(response.data, null, 2);
+                  }
+                ).catch(function(error) {
+                console.log(error);
+              })
+            }
+          }
           else{
-            axios.post(url, requestBody)
+            let sqlUrl = '/interface-ui/api/perform?id='+drawId.value;
+            let sqlBody = {
+              "id": drawId.value,
+              "select": "POST",
+              "apiPath": drawPath.value,
+              "codeType": "SQL",
+              "codeValue": drawScript.value,
+              "requestBody": requestBody,
+              "optionInfo": {
+                "resultStructure": true,
+                "responseFormat": "{\n \"success\" : \"@resultStatus\",\n \"message\" : \"@resultMessage\",\n \"code\" : \"@resultCode\",\n \"lifeCycleTime\": \"@timeLifeCycle\",\n \"executionTime\": \"@timeExecution\",\n \"value\" : \"@resultData\"\n}"
+              }
+            }
+            axios.post(sqlUrl, sqlBody)
               .then(function(response) {
                   console.log(response);
                   code.value = JSON.stringify(response.data, null, 2);
