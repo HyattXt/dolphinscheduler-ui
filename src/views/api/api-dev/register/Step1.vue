@@ -1,6 +1,4 @@
 <template>
-  <n-card title="注册API" szie="small"></n-card>
-  <n-card style="margin-top: 10px">
   <n-form
     :label-width="90"
     :model="formValue"
@@ -81,7 +79,6 @@
       </n-space>
     </div>
   </n-form>
-  </n-card>
 </template>
 
 <script lang="ts" setup>
@@ -95,6 +92,7 @@ const message = useMessage();
 const isDisable= ref(false);
 const kvValue = ref([]);
 const bodyValue = ref([]);
+const emit = defineEmits(['nextStep']);
 const formValue = ref({
   apiName: '',
   apiPath: '',
@@ -169,6 +167,7 @@ function formSubmit() {
             message.info("注册成功！")
             isDisable.value=true
             formValue.value.apiPath=formValue.value.apiPath.replace('/proxy','')
+            emit('nextStep')
           }
         ).catch(function (error) {
         message.error('注册失败，请咨询管理员');
