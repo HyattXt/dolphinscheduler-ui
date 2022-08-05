@@ -108,6 +108,7 @@
 
 <script>
 import {defineComponent, ref, reactive, onMounted, h} from 'vue';
+import { useRouter } from "vue-router"
 import axios from "axios";
 import { DeleteOutlined, EditOutlined, SearchOutlined, CodeOutlined } from "@vicons/antd";
 import { NButton, NSpace, useMessage, NPopconfirm, NTooltip, NIcon } from "naive-ui";
@@ -129,7 +130,8 @@ const columns = ({play},{del},{editApi}) => {
     },
     {
       title: '方式',
-      key: 'apiMethod'
+      key: 'apiMethod',
+      width: 61
     },
     {
       title: '路径',
@@ -138,10 +140,12 @@ const columns = ({play},{del},{editApi}) => {
     {
       title: '状态',
       key: 'apiStatus',
+      width: 66
     },
     {
       title: 'API类型',
       key: 'apiFlag',
+      width: 80
     },
     {
       title: '创建时间',
@@ -150,6 +154,7 @@ const columns = ({play},{del},{editApi}) => {
     {
       title: '操作',
       key: 'actions',
+      width: 132,
       render(row) {
         return h(NSpace, null, {
           default: () =>
@@ -185,6 +190,7 @@ const columns = ({play},{del},{editApi}) => {
                     h(
                       NButton,
                       {
+                        disabled:(row.apiStatus === '发布'),
                         circle: true,
                         type: 'info',
                         size: 'small',
@@ -218,6 +224,7 @@ const columns = ({play},{del},{editApi}) => {
                           h(
                             NButton,
                             {
+                              disabled:(row.apiStatus === '发布'),
                               circle: true,
                               type: 'error',
                               size: 'small',
@@ -304,6 +311,7 @@ export default defineComponent({
     const drawMethod = ref("");
     const paramList = ref([]);
     const code = ref("");
+    const router = useRouter();
     const activate = (row) => {
       code.value = '';
       active.value = true;
@@ -312,10 +320,12 @@ export default defineComponent({
       drawId.value = row.apiId;
       drawScript.value = row.apiScript;
       drawMethod.value = row.apiMethod;
-      drawParam.value=JSON.parse(row.apiSample).requestBody;
+      drawParam.value=JSON.parse(row.apiSample);
+      drawParam.value=JSON.parse(drawParam.value.requestBody);
       paramList.value = Object.entries(drawParam.value).map(([key, value]) => ({
         key, value
       }))
+      console.log(paramList.value);
       console.log(drawTitle);
       console.log(drawParam.value);
     };
@@ -333,7 +343,7 @@ export default defineComponent({
         dataRef.value = data.data
         dataRef.value.apiCreateTime=dataRef.value.forEach(item => {
           let date = new Date(parseInt(item.apiCreateTime));
-          item.apiCreateTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+          item.apiCreateTime = moment(date).format("YYYY-MM-DD HH:mm:ss")
         })
         dataRef.value.apiStatus=dataRef.value.forEach(item => {
           if (item.apiStatus === "-1") {item.apiStatus = "删除";}
@@ -367,24 +377,24 @@ export default defineComponent({
             .then(function(response) {
                 console.log(response);
                 message.info(`成功删除 ${row.apiName}`);
-                refresh(1);
+                refresh(paginationReactive.page);
               }
             )
         }
       },
       {
         editApi(row) {
-/*          let urlPub=`/interface-ui/api/publish?id=${row.apiId}`;
-          let pubPar = {
-            id:""
-          };
-          pubPar.id=row.apiId
-          axios.post(urlPub, pubPar)
-            .then(function(response) {
-                console.log(response);
-              }
-            )
-*/
+          if(row.apiFlag==='接口开发'){
+            router.push({
+              path:'/service/api-dev-step-edit',
+              query: { apiId: row.apiId }
+            })
+          }else{
+            router.push({
+              path:'/service/api-register-edit',
+              query: { apiId: row.apiId }
+            })
+          }
           message.info(`编辑 ${row.apiName}`);
         }
       }
@@ -415,7 +425,7 @@ export default defineComponent({
         dataRef.value = data.data
         dataRef.value.apiCreateTime=dataRef.value.forEach(item => {
           let date = new Date(parseInt(item.apiCreateTime));
-          item.apiCreateTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+          item.apiCreateTime = moment(date).format("YYYY-MM-DD HH:mm:ss")
         })
         dataRef.value.apiStatus=dataRef.value.forEach(item => {
           if (item.apiStatus === "-1") {item.apiStatus = "删除";}
@@ -501,7 +511,7 @@ export default defineComponent({
             dataRef.value = data.data
             dataRef.value.apiCreateTime=dataRef.value.forEach(item => {
               let date = new Date(parseInt(item.apiCreateTime));
-              item.apiCreateTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+              item.apiCreateTime = moment(date).format("YYYY-MM-DD HH:mm:ss")
             })
             dataRef.value.apiStatus=dataRef.value.forEach(item => {
               if (item.apiStatus === "-1") {item.apiStatus = "删除";}
@@ -539,6 +549,7 @@ export default defineComponent({
               code.value = JSON.stringify(response.data, null, 2);
               }
             ).catch(function(error) {
+            code.value = JSON.stringify(error, null, 2);
             console.log(error);
           })}
             else{
@@ -551,6 +562,7 @@ export default defineComponent({
                     code.value = JSON.stringify(response.data, null, 2);
                   }
                 ).catch(function(error) {
+                code.value = JSON.stringify(error, null, 2);
                 console.log(error);
               })
             }
@@ -575,6 +587,7 @@ export default defineComponent({
                   code.value = JSON.stringify(response.data, null, 2);
                 }
               ).catch(function(error) {
+              code.value = JSON.stringify(error, null, 2);
               console.log(error);
             })
           }

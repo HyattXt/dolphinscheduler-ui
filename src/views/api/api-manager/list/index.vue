@@ -96,12 +96,6 @@
       {{drawTitle}}
     </n-form-item>
     <n-form-item label="授权用户" label-placement="left" path="user.name">
-      <!--n-select
-        v-model:value="apiAuthorizer"
-        multiple
-        :options="userList"
-        label-field="userName"
-        value-field="id"/-->
       <n-transfer
         ref="transfer"
         v-model:value="apiAuthorizer"
@@ -119,8 +113,8 @@
 <script>
 import {defineComponent, ref, reactive, onMounted, h} from 'vue';
 import axios from "axios";
-import { UserOutlined, SearchOutlined, ToTopOutlined, ProfileOutlined } from "@vicons/antd";
-import { NButton, NSpace, useMessage, NTooltip, NIcon } from "naive-ui";
+import { UserOutlined, SearchOutlined, ToTopOutlined, ProfileOutlined, VerticalAlignBottomOutlined } from "@vicons/antd";
+import { NButton, NSpace, useMessage, NTooltip, NIcon, NPopconfirm } from "naive-ui";
 import hljs from 'highlight.js/lib/core'
 import javascript from 'highlight.js/lib/languages/javascript'
 import moment from 'moment'
@@ -138,7 +132,8 @@ const columns = ({play},{pub},{auth}) => {
     },
     {
       title: '方式',
-      key: 'apiMethod'
+      key: 'apiMethod',
+      width: 61
     },
     {
       title: '路径',
@@ -147,10 +142,12 @@ const columns = ({play},{pub},{auth}) => {
     {
       title: '状态',
       key: 'apiStatus',
+      width: 66
     },
     {
       title: 'API类型',
       key: 'apiFlag',
+      width: 80
     },
     {
       title: '创建时间',
@@ -159,6 +156,7 @@ const columns = ({play},{pub},{auth}) => {
     {
       title: '操作',
       key: 'actions',
+      width: 132,
       render(row) {
         return h(NSpace, null, {
           default: () =>
@@ -171,7 +169,7 @@ const columns = ({play},{pub},{auth}) => {
                     NButton,
                     {
                       circle: true,
-                      type: 'warning',
+                      type: (row.apiAuthorizer === null)?'warning':'info',
                       size: 'small',
                       class: 'edit',
                       onClick: () => {
@@ -211,26 +209,39 @@ const columns = ({play},{pub},{auth}) => {
                 }
               ),
               h(
-                NTooltip,
-                {},
+                NPopconfirm,
+                {
+                  onPositiveClick: () => {
+                    pub(row);
+                  }
+                },
                 {
                   trigger: () =>
                     h(
-                      NButton,
+                      NTooltip,
+                      {},
                       {
-                        circle: true,
-                        type: 'info',
-                        size: 'small',
-                        class: 'edit',
-                        onClick: () => {
-                          pub(row)}
-                      },
-                      {
-                        icon: () =>
-                          h(NIcon, null, { default: () => h(ToTopOutlined) })
+                        trigger: () =>
+                          h(
+                            NButton,
+                            {
+                              disabled:(row.apiAuthorizer === null),
+                              circle: true,
+                              type: (row.apiStatus === '待发布')?'info':'warning',
+                              size: 'small',
+                              class: 'edit'
+                            },
+                            {
+                              icon: () =>
+                                h(NIcon, null, {
+                                  default: () => (row.apiStatus === '待发布')?h(ToTopOutlined):h(VerticalAlignBottomOutlined)
+                                })
+                            }
+                          ),
+                        default: () => (row.apiStatus === '待发布')?"发布":"下线"
                       }
                     ),
-                  default: () => "发布"
+                  default: () => (row.apiStatus === '待发布')?"确定发布吗？":"确定下线吗？"
                 }
               )
             ]
@@ -295,6 +306,7 @@ export default defineComponent({
     const active = ref(false);
     const showModal = ref(false);
     const drawTitle = ref("");
+    const drawId = ref("");
     const userList = ref([]);
     const apiAuthorizer = ref([]);
     const basicInfo = ref({});
@@ -308,7 +320,7 @@ export default defineComponent({
     const actAuth =(row) => {
       showModal.value = true;
       drawTitle.value = row.apiName;
-      apiAuthorizer.value = '';
+      drawId.value = row.apiId;
       console.log(drawTitle);
       queryUser();
     };
@@ -321,28 +333,32 @@ export default defineComponent({
         .then(function (response) {
             console.log(response);
             userList.value=response.data.data;
-            let userOption = userList.value.map(item=>{
-              let tempList ={};
-              tempList.value=item.id;
-              tempList.label=item.userName;
+            userList.value = userList.value.map(item => {
+              let tempList = {};
+              tempList.value = item.id;
+              tempList.label = item.userName;
               return tempList
-            })
-            userList.value = userOption;
+            });
             console.log(userList.value)
           }
         )
-      axios.post(authListUrl)
+      let authBody = {
+        "apiId": ""
+      }
+      authBody.apiId = drawId.value;
+      console.log(authBody);
+      axios.post(authListUrl,authBody)
         .then(function (response) {
+            console.log("response");
             console.log(response);
-            userList.value=response.data.data;
-            let userOption = userList.value.map(item=>{
-              let tempList ={};
-              tempList.value=item.id;
-              tempList.label=item.userName;
-              return tempList
-            })
-            userList.value = userOption;
-            console.log(userList.value)
+            apiAuthorizer.value=response.data.data;
+            apiAuthorizer.value = apiAuthorizer.value.map(item => {
+              let authList = '';
+              authList = item.id;
+              return authList
+            });
+          console.log("apiAuthorizer");
+            console.log(apiAuthorizer.value)
           }
         )
     }
@@ -350,7 +366,7 @@ export default defineComponent({
     function queryBasic (apiId) {
       const url ='/interface/getInterfaceInfoById'
       let basicPar = {
-        apiId:""
+        apiId : drawId.value
       };
       basicPar.apiId=apiId;
       axios.post(url,basicPar)
@@ -360,7 +376,7 @@ export default defineComponent({
           if (basicInfo.value.apiFlag === 1) {basicInfo.value.apiFlag = "接口开发";}
           if (basicInfo.value.apiFlag === 2) {basicInfo.value.apiFlag = "接口注册";}
           let date = new Date(parseInt(basicInfo.value.apiGmtTime));
-          basicInfo.value.apiGmtTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+          basicInfo.value.apiGmtTime = moment(date).format("YYYY-MM-DD HH:mm:ss")
           }
         )
     }
@@ -377,7 +393,7 @@ export default defineComponent({
         dataRef.value = data.data
         dataRef.value.apiCreateTime=dataRef.value.forEach(item => {
           let date = new Date(parseInt(item.apiCreateTime));
-          item.apiCreateTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+          item.apiCreateTime = moment(date).format("YYYY-MM-DD HH:mm:ss")
         })
         dataRef.value.apiStatus=dataRef.value.forEach(item => {
           if (item.apiStatus === "-1") {item.apiStatus = "删除";}
@@ -397,6 +413,22 @@ export default defineComponent({
     }
 
     function subAuth() {
+      let subUrl = '/interface/insertAuthorizeInfo';
+      let requestBody ={
+        "apiId": drawId.value,
+        "authorizeId": apiAuthorizer.value
+      }
+      axios.post(subUrl,requestBody)
+        .then(function(response) {
+            message.info('授权成功');
+            showModal.value = false;
+            console.log(response);
+            refresh(paginationReactive.page);
+          }
+        ).catch(function(error) {
+        message.info('授权失败,请联系管理员');
+        console.log(error);
+      })
       console.log(apiAuthorizer)
     }
 
@@ -407,19 +439,59 @@ export default defineComponent({
       },
       {
         pub(row) {
-          let urlPub=`/interface-ui/api/publish?id=${row.apiId}`;
-          let pubPar = {
-            id:""
-          };
-          pubPar.id=row.apiId
-          axios.post(urlPub, pubPar)
-            .then(function(response) {
-              console.log(response);
-              message.info(`成功发布 ${row.apiName}`);
-              console.log("成功发布")
-              refresh(1)
-              }
-            )
+          if(row.apiStatus === '待发布'){
+            if(row.apiFlag==='接口开发'){
+              let urlPub=`/interface-ui/api/publish?id=${row.apiId}`;
+              let pubPar = {
+                id:""
+              };
+              pubPar.id=row.apiId
+              axios.post(urlPub, pubPar)
+                .then(function(response) {
+                    console.log(response);
+                    message.info(`成功发布 ${row.apiName}`);
+                    refresh(paginationReactive.page)
+                  }
+                ).catch(function(error) {
+                message.info('发布失败,请联系管理员');
+                console.log(error);
+              })
+            }else{
+              let urlPub=`/interface/update`;
+              let pubPar = {
+                apiId: "",
+                apiStatus: 1
+              };
+              pubPar.apiId=row.apiId
+              axios.post(urlPub, pubPar)
+                .then(function(response) {
+                    console.log(response);
+                    message.info(`成功发布 ${row.apiName}`);
+                    refresh(paginationReactive.page)
+                  }
+                ).catch(function(error) {
+                message.info('发布失败,请联系管理员');
+                console.log(error);
+              })
+            }
+          }else{
+            let urlPub=`/interface/update`;
+            let pubPar = {
+              apiId: "",
+              apiStatus: 0
+            };
+            pubPar.apiId=row.apiId
+            axios.post(urlPub, pubPar)
+              .then(function(response) {
+                  console.log(response);
+                  message.info(`成功下线 ${row.apiName}`);
+                  refresh(paginationReactive.page)
+                }
+              ).catch(function(error) {
+              message.info('下线失败,请联系管理员');
+              console.log(error);
+            })
+          }
         }
       },
       {
@@ -454,7 +526,7 @@ export default defineComponent({
         dataRef.value = data.data
         dataRef.value.apiCreateTime=dataRef.value.forEach(item => {
           let date = new Date(parseInt(item.apiCreateTime));
-          item.apiCreateTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+          item.apiCreateTime = moment(date).format("YYYY-MM-DD HH:mm:ss")
         })
         dataRef.value.apiStatus=dataRef.value.forEach(item => {
           if (item.apiStatus === "-1") {item.apiStatus = "删除";}
@@ -483,6 +555,7 @@ export default defineComponent({
       active,
       activate,
       drawTitle,
+      drawId,
       userList,
       basicInfo,
       apiAuthorizer,
@@ -490,23 +563,6 @@ export default defineComponent({
       rowKey (rowData) {
         return rowData.apiId
       },
-      code: '{\n' +
-        '    "status": 23,\n' +
-        '    "data": [\n' +
-        '        {\n' +
-        '            "apiGmtTime": "1992-04-26 04:38:37",\n' +
-        '            "apiId": "93"\n'+
-        '        },\n'+
-        '        {\n' +
-        '            "apiGmtTime": "1995-02-15 07:23:33",\n' +
-        '            "apiId": "94"\n'+
-        '        },\n'+
-        '        {\n' +
-        '            "apiGmtTime": "1995-02-15 07:23:33",\n' +
-        '            "apiId": "94"\n'+
-        '        }\n'+
-        '            ]\n'+
-        '  }',
       hljs,
       stateOptions:[
         {
@@ -520,24 +576,12 @@ export default defineComponent({
       ],
       statusOptions:[
         {
-          label: '删除',
-          value: '-1'
-        },
-        {
           label: '待发布',
           value: '0'
         },
         {
           label: '发布',
           value: '1'
-        },
-        {
-          label: '有变更',
-          value: '2'
-        },
-        {
-          label: '禁用',
-          value: '3'
         }
       ],
       handlePageChange (currentPage) {
@@ -554,7 +598,7 @@ export default defineComponent({
             dataRef.value = data.data
             dataRef.value.apiCreateTime=dataRef.value.forEach(item => {
               let date = new Date(parseInt(item.apiCreateTime));
-              item.apiCreateTime = moment(date).format("YYYY-MM-DD hh:mm:ss")
+              item.apiCreateTime = moment(date).format("YYYY-MM-DD HH:mm:ss")
             })
             dataRef.value.apiStatus=dataRef.value.forEach(item => {
               if (item.apiStatus === "-1") {item.apiStatus = "删除";}
