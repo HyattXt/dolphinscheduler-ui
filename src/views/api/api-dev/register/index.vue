@@ -63,6 +63,15 @@
         value-placeholder="参数值"
       />
     </n-form-item>
+    <n-form-item label="请求body参数" path="comment" label-placement="top">
+      <n-dynamic-input
+        :disabled="isDisable"
+        v-model:value="bodyValue"
+        preset="pair"
+        key-placeholder="参数名"
+        value-placeholder="参数值"
+      />
+    </n-form-item>
     <div style="margin-left: 300px">
       <n-space>
         <router-link to='/service/api-dev'>
@@ -84,8 +93,8 @@ import { replace } from "lodash";
 const form1Ref: any = ref(null);
 const message = useMessage();
 const isDisable= ref(false);
-const kvValue = ref([])
-
+const kvValue = ref([]);
+const bodyValue = ref([]);
 const formValue = ref({
   apiName: '',
   apiPath: '',
@@ -143,9 +152,15 @@ function formSubmit() {
         tempHeader.value=item.value;
         return tempHeader;
       })
+      let bodyList = bodyValue.value;
+      let requestBody:any = {};
+      for(let i=0;i<bodyList.length;i++){
+        requestBody[bodyList[i].key]=bodyList[i].value
+      }
       console.log(requestHeader);
       formValue.value.apiPath='/proxy'+formValue.value.apiPath;
       sample.requestHeader=requestHeader;
+      sample.requestBody=requestBody;
       formValue.value.apiSample = JSON.stringify(sample, null, 2)
       console.log(formValue.value)
       axios.post(insUrl, formValue.value)
